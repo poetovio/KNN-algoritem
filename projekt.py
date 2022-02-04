@@ -4,6 +4,12 @@ import math
 import seaborn as sns
 import csv
 import sklearn.metrics
+import random
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import confusion_matrix
 
 #funkcija za izračun evklidske razdalje
 
@@ -35,6 +41,31 @@ def sosedi(podatki, vrstica, steviloSosedov):
 
     return praviSosedi
 
+#funkcija za razbitje podatkov na manjše dele
+
+def razbitje(podatki, steviloDelov):
+    velikost = int(len(podatki) / steviloDelov)
+    tabela = np.array(podatki)
+    np.random.shuffle(tabela)
+
+    noviPodatki = np.array_split(tabela, steviloDelov)
+
+    return noviPodatki
+
+#test funkcija
+
+def cross_validation_split(dataset, n_folds):
+    dataset_split = list()
+    dataset_copy = list(dataset)
+    fold_size = int(len(dataset) / n_folds)
+    for _ in range(n_folds):
+        fold = list()
+        while len(fold) < fold_size:
+            index = random.randrange(len(dataset_copy))
+            fold.append(dataset_copy.pop(index))
+        dataset_split.append(fold)
+    return dataset_split
+
 #funkcija za ugibanje naslednjega vnosa
 
 def ugib(podatki, vrstica, steviloSosedov):
@@ -43,6 +74,18 @@ def ugib(podatki, vrstica, steviloSosedov):
     izpisi = [row[-1] for row in zbirkaSosedi]
 
     return max(set(izpisi), key=izpisi.count)
+
+#funkcija knn
+
+def knn(podatki, testni_podatki, steviloSosedov):
+    ugibanja = list()
+
+    for vrstica in testni_podatki:
+        ugibanja.append(ugib(podatki, vrstica, steviloSosedov))
+
+    return ugibanja
+
+
 
 #test
 
@@ -63,3 +106,9 @@ with open('bankovci.csv', newline='') as datoteka:
 
 print(sosedi(dataset, dataset[5], 3))
 print(ugib(dataset, dataset[5], 3))
+
+print(list(razbitje(dataset, 3)))
+
+print("_____________________" + '\n')
+
+print(cross_validation_split(dataset, 3))

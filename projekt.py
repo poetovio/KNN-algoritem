@@ -35,6 +35,15 @@ def sosedi(podatki, vrstica, steviloSosedov):
 
     return praviSosedi
 
+#funkcija za ugibanje naslednjega vnosa
+
+def ugib(podatki, vrstica, steviloSosedov):
+    zbirkaSosedi = sosedi(podatki, vrstica, steviloSosedov)
+
+    izpisi = [row[-1] for row in zbirkaSosedi]
+
+    return max(set(izpisi), key=izpisi.count)
+
 #test
 
 dataset = [[2.7810836,2.550537003,0],
@@ -52,4 +61,5 @@ dataset = [[2.7810836,2.550537003,0],
 with open('bankovci.csv', newline='') as datoteka:
     vnosi = list(csv.reader(datoteka))
 
-print(sosedi(dataset, dataset[0], 3))
+print(sosedi(dataset, dataset[5], 3))
+print(ugib(dataset, dataset[5], 3))

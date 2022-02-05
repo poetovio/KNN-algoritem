@@ -11,6 +11,16 @@ from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import confusion_matrix
 
+#tabele za hranjenje podatkov
+
+tocnost = list()
+senzitivnost = list()
+specificnost = list()
+Fmera = list()
+zmeda = list()
+preciznost = list()
+priklic = list()
+
 #funkcija za izračun evklidske razdalje
 
 def evklid(vrstica1, vrstica2):
@@ -73,7 +83,7 @@ def ugib(podatki, vrstica, steviloSosedov):
 
     izpisi = [row[-1] for row in zbirkaSosedi]
 
-    return max(set(izpisi), key=izpisi.count)
+    return int(max(set(izpisi), key=izpisi.count))
 
 #funkcija knn
 
@@ -85,7 +95,78 @@ def knn(podatki, testni_podatki, steviloSosedov):
 
     return ugibanja
 
+#test funkcija
 
+def accuracy_metric(actual, predicted):
+    print("<<<<fold>>>>>")
+    foldi = []
+
+  
+    akjurasi = accuracy_score(actual, predicted)
+    print("Accuracy: ")
+    print(akjurasi)
+    tocnost.append(akjurasi)
+    foldi.append(akjurasi)
+
+    precizija = precision_score(actual, predicted, average='macro')
+    print("Precision: ")
+    print(precizija)
+    preciznost.append(precizija)
+    foldi.append(precizija)
+
+
+    recall = recall_score(actual, predicted, average='macro')
+    print("Recall: ")
+
+    print(recall)
+    priklic.append(recall)
+    foldi.append(recall)
+    
+    obcutljivost = recall_score(actual, predicted, average='macro')
+    print("Sensibility : ")
+    print(obcutljivost)
+    senzitivnost.append(obcutljivost)
+    foldi.append(obcutljivost)
+
+
+    f = f1_score(actual, predicted, average='macro')
+    print("Fmera matrix: ")
+    print(f)
+    Fmera.append(f)
+    foldi.append(f)
+
+   
+    print("Confusion matrix: ")
+
+    
+    print(confusion_matrix(actual, predicted))
+    cm1 = confusion_matrix(actual, predicted)
+    print("Specificnost")
+    specificity1 = cm1[1, 1]/(cm1[1, 0]+cm1[1, 1])
+    print(specificity1)
+    specificnost.append(specificity1)
+    foldi.append(specificity1)
+    return foldi
+
+def evaluate_algorithm(podatki, funkcija, steviloDelov, *args):
+    deli = cross_validation_split(podatki, steviloDelov)
+    rezultati = list()
+
+    for delcek in deli:
+        train_set = list(deli)
+        train_set.remove(delcek)
+        train_set = sum(train_set, [])
+        test_set = list()
+        for vrstica in delcek:
+            row_copy = list(vrstica)
+            test_set.append(row_copy)
+            row_copy[-1] = None
+        predicted = funkcija(train_set, test_set, *args)
+        actual = [row[-1] for row in delcek]
+        accuracy = accuracy_metric(actual, predicted)
+        rezultati.append(accuracy)
+    
+    return rezultati
 
 #test
 
@@ -100,15 +181,26 @@ dataset = [[2.7810836,2.550537003,0],
 	[8.675418651,-0.242068655,1],
 	[7.673756466,3.508563011,1]]
 
+num_neighbors = 5
+steviloDelov = 5
 
 with open('bankovci.csv', newline='') as datoteka:
     vnosi = list(csv.reader(datoteka))
+    podatki = list()
+    vnosi.pop(0)
 
-print(sosedi(dataset, dataset[5], 3))
-print(ugib(dataset, dataset[5], 3))
-
-print(list(razbitje(dataset, 3)))
-
-print("_____________________" + '\n')
+    for vrstica in vnosi:
+        sprememba = [float(vrstica[0]), float(vrstica[1]), float(vrstica[2]), float(vrstica[3]), int(vrstica[4])]
+        podatki.append(sprememba)
 
 print(cross_validation_split(dataset, 3))
+
+rezultati = evaluate_algorithm(podatki, knn, steviloDelov, num_neighbors)
+
+print("Povrečna vrednost: ")
+print('Povrečna vrednost točnost: %.3f%%' % (sum(tocnost)/float(len(tocnost))))
+print('Povrečna vrednost priklic: %.3f%%' % (sum(priklic)/float(len(priklic))))
+print('Povrečna vrednost preciznost: %.3f%%' %(sum(preciznost)/float(len(preciznost))))
+print('Povrečna vrednost fmera: %.3f%%' % (sum(Fmera)/float(len(Fmera))))
+print('Povrečna vrednost senzitivnost: %.3f%%' %(sum(senzitivnost)/float(len(senzitivnost))))
+print('Povrečna vrednost specifičnost: %.3f%%' % (sum(specificnost)/float(len(specificnost))))

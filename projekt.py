@@ -3,7 +3,6 @@ import numpy as np
 import math
 import seaborn as sns
 import csv
-import sklearn.metrics
 import random
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
@@ -62,20 +61,6 @@ def razbitje(podatki, steviloDelov):
 
     return noviPodatki
 
-#test funkcija
-
-def cross_validation_split(dataset, n_folds):
-    dataset_split = list()
-    dataset_copy = list(dataset)
-    fold_size = int(len(dataset) / n_folds)
-    for _ in range(n_folds):
-        fold = list()
-        while len(fold) < fold_size:
-            index = random.randrange(len(dataset_copy))
-            fold.append(dataset_copy.pop(index))
-        dataset_split.append(fold)
-    return dataset_split
-
 #funkcija za ugibanje naslednjega vnosa
 
 def ugib(podatki, vrstica, steviloSosedov):
@@ -97,74 +82,91 @@ def knn(podatki, testni_podatki, steviloSosedov):
 
 #test funkcija
 
-def accuracy_metric(actual, predicted):
-    print("<<<<fold>>>>>")
-    foldi = []
+def natancnostFolda(actual, predicted, stevec):
+    tabela = []
 
-  
     akjurasi = accuracy_score(actual, predicted)
-    print("Accuracy: ")
-    print(akjurasi)
     tocnost.append(akjurasi)
-    foldi.append(akjurasi)
+    tabela.append(akjurasi)
 
     precizija = precision_score(actual, predicted, average='macro')
-    print("Precision: ")
-    print(precizija)
     preciznost.append(precizija)
-    foldi.append(precizija)
+    tabela.append(precizija)
 
 
     recall = recall_score(actual, predicted, average='macro')
-    print("Recall: ")
 
-    print(recall)
     priklic.append(recall)
-    foldi.append(recall)
+    tabela.append(recall)
     
     obcutljivost = recall_score(actual, predicted, average='macro')
-    print("Sensibility : ")
-    print(obcutljivost)
     senzitivnost.append(obcutljivost)
-    foldi.append(obcutljivost)
+    tabela.append(obcutljivost)
 
 
     f = f1_score(actual, predicted, average='macro')
-    print("Fmera matrix: ")
-    print(f)
     Fmera.append(f)
-    foldi.append(f)
+    tabela.append(f)
 
    
-    print("Confusion matrix: ")
+    matrikaZmeda = confusion_matrix(actual, predicted)
 
-    
-    print(confusion_matrix(actual, predicted))
-    cm1 = confusion_matrix(actual, predicted)
-    print("Specificnost")
-    specificity1 = cm1[1, 1]/(cm1[1, 0]+cm1[1, 1])
-    print(specificity1)
-    specificnost.append(specificity1)
-    foldi.append(specificity1)
-    return foldi
+    specMatrika = matrikaZmeda[1, 1]/(matrikaZmeda[1, 0]+matrikaZmeda[1, 1])
+    specificnost.append(specMatrika)
 
-def evaluate_algorithm(podatki, funkcija, steviloDelov, *args):
-    deli = cross_validation_split(podatki, steviloDelov)
+    tabela.append(specMatrika)
+
+
+    print("~> Fold stevilka " + str(stevec) + " <~")
+    print('\n')
+    print('\n')
+    print("Natancnost: ")
+    print(akjurasi)
+    print('\n')
+    print("Tocnost: ")
+    print(precizija)
+    print('\n')
+    print("Recall: ")
+    print(recall)
+    print('\n')
+    print("Obcutljivost: ")
+    print(obcutljivost)
+    print('\n')
+    print("Matrika f-mere: ")
+    print(f)
+    print('\n')
+    print("Matrika zmede: ")
+    print(matrikaZmeda)
+    print('\n')
+    print("Specificnost:")
+    print(specMatrika)
+    print('\n')
+    print('\n')
+
+    return tabela
+
+def algoritem(podatki, funkcija, steviloDelov, *args):
+    deli = razbitje(podatki, steviloDelov)
     rezultati = list()
+    stevec = 0
 
     for delcek in deli:
-        train_set = list(deli)
-        train_set.remove(delcek)
-        train_set = sum(train_set, [])
-        test_set = list()
+        trening = np.array(deli, dtype=object)
+        trening = np.delete(trening, stevec)
+        #train_set = sum(train_set, [])
+        trening = np.concatenate(trening)
+        test = list()
+
         for vrstica in delcek:
-            row_copy = list(vrstica)
-            test_set.append(row_copy)
-            row_copy[-1] = None
-        predicted = funkcija(train_set, test_set, *args)
-        actual = [row[-1] for row in delcek]
-        accuracy = accuracy_metric(actual, predicted)
-        rezultati.append(accuracy)
+            vrstica2 = list(vrstica)
+            test.append(vrstica2)
+            vrstica2[-1] = None
+
+        napoved = funkcija(trening, test, *args)
+        aktualno = [row[-1] for row in delcek]
+        natancnost = natancnostFolda(aktualno, napoved, stevec + 1)
+        rezultati.append(natancnost)
+        stevec += 1
     
     return rezultati
 
@@ -193,10 +195,9 @@ with open('bankovci.csv', newline='') as datoteka:
         sprememba = [float(vrstica[0]), float(vrstica[1]), float(vrstica[2]), float(vrstica[3]), int(vrstica[4])]
         podatki.append(sprememba)
 
-print(cross_validation_split(dataset, 3))
+rezultati = algoritem(podatki, knn, steviloDelov, num_neighbors)
 
-rezultati = evaluate_algorithm(podatki, knn, steviloDelov, num_neighbors)
-
+print('\n')
 print("Povrečna vrednost: ")
 print('Povrečna vrednost točnost: %.3f%%' % (sum(tocnost)/float(len(tocnost))))
 print('Povrečna vrednost priklic: %.3f%%' % (sum(priklic)/float(len(priklic))))

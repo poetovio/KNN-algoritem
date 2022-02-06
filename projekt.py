@@ -1,7 +1,7 @@
-from tkinter import W
 import numpy as np
 import math
 import seaborn as sns
+import matplotlib.pyplot as plot
 import csv
 import random
 from sklearn.metrics import accuracy_score
@@ -37,10 +37,10 @@ def sosedi(podatki, vrstica, steviloSosedov):
     praviSosedi = list()
     stevec = 0
 
-    for row in podatki:
-        dolzina = evklid(vrstica, row)
+    for podatek in podatki:
+        dolzina = evklid(vrstica, podatek)
         dolzine[stevec] = dolzina
-        sosedi.append((row, dolzina))
+        sosedi.append((podatek, dolzina))
         stevec += 1
 
     sosedi.sort(key=lambda parameter: parameter[1])
@@ -53,7 +53,6 @@ def sosedi(podatki, vrstica, steviloSosedov):
 #funkcija za razbitje podatkov na manjše dele
 
 def razbitje(podatki, steviloDelov):
-    velikost = int(len(podatki) / steviloDelov)
     tabela = np.array(podatki)
     np.random.shuffle(tabela)
 
@@ -66,7 +65,7 @@ def razbitje(podatki, steviloDelov):
 def ugib(podatki, vrstica, steviloSosedov):
     zbirkaSosedi = sosedi(podatki, vrstica, steviloSosedov)
 
-    izpisi = [row[-1] for row in zbirkaSosedi]
+    izpisi = [sosed[-1] for sosed in zbirkaSosedi]
 
     return int(max(set(izpisi), key=izpisi.count))
 
@@ -80,80 +79,53 @@ def knn(podatki, testni_podatki, steviloSosedov):
 
     return ugibanja
 
-#test funkcija
+#funkcija za izracun natancnosti
 
-def natancnostFolda(actual, predicted, stevec):
-    tabela = []
-
-    akjurasi = accuracy_score(actual, predicted)
-    tocnost.append(akjurasi)
-    tabela.append(akjurasi)
-
-    precizija = precision_score(actual, predicted, average='macro')
+def natancnostFolda(aktualno, napoved, stevec):
+    precizija = precision_score(aktualno, napoved, average='macro')
     preciznost.append(precizija)
-    tabela.append(precizija)
 
+    akjurasi = accuracy_score(aktualno, napoved)
+    tocnost.append(akjurasi)
 
-    recall = recall_score(actual, predicted, average='macro')
-
-    priklic.append(recall)
-    tabela.append(recall)
-    
-    obcutljivost = recall_score(actual, predicted, average='macro')
-    senzitivnost.append(obcutljivost)
-    tabela.append(obcutljivost)
-
-
-    f = f1_score(actual, predicted, average='macro')
+    f = f1_score(aktualno, napoved, average='macro')
     Fmera.append(f)
-    tabela.append(f)
 
+    priklich = recall_score(aktualno, napoved, average='macro')
+    priklic.append(priklich)
+    
+    matrikaZmeda = confusion_matrix(aktualno, napoved)
+
+    obcutljivost = recall_score(aktualno, napoved, average='macro')
+    senzitivnost.append(obcutljivost)
    
-    matrikaZmeda = confusion_matrix(actual, predicted)
 
     specMatrika = matrikaZmeda[1, 1]/(matrikaZmeda[1, 0]+matrikaZmeda[1, 1])
     specificnost.append(specMatrika)
 
-    tabela.append(specMatrika)
-
-
     print("~> Fold stevilka " + str(stevec) + " <~")
     print('\n')
     print('\n')
-    print("Natancnost: ")
-    print(akjurasi)
-    print('\n')
-    print("Tocnost: ")
-    print(precizija)
-    print('\n')
-    print("Recall: ")
-    print(recall)
-    print('\n')
-    print("Obcutljivost: ")
-    print(obcutljivost)
-    print('\n')
-    print("Matrika f-mere: ")
-    print(f)
-    print('\n')
+    print("Tocnost: " + str(precizija))
+    print("Natancnost: " + str(akjurasi))
+    print("Priklic: " + str(priklich))
+    print("F-mera: " + str(f))
+    print("Obcutljivost: " + str(obcutljivost))
     print("Matrika zmede: ")
     print(matrikaZmeda)
-    print('\n')
-    print("Specificnost:")
-    print(specMatrika)
-    print('\n')
+    print("Specificnost: " + str(specMatrika))
     print('\n')
 
-    return tabela
+
+# koncni algoritem
 
 def algoritem(podatki, funkcija, steviloDelov, *args):
     deli = razbitje(podatki, steviloDelov)
-    rezultati = list()
     stevec = 0
 
     for delcek in deli:
         trening = np.array(deli, dtype=object)
         trening = np.delete(trening, stevec)
-        #train_set = sum(train_set, [])
         trening = np.concatenate(trening)
         test = list()
 
@@ -164,11 +136,9 @@ def algoritem(podatki, funkcija, steviloDelov, *args):
 
         napoved = funkcija(trening, test, *args)
         aktualno = [row[-1] for row in delcek]
-        natancnost = natancnostFolda(aktualno, napoved, stevec + 1)
-        rezultati.append(natancnost)
+        natancnostFolda(aktualno, napoved, stevec + 1)
         stevec += 1
     
-    return rezultati
 
 #test
 
@@ -183,7 +153,7 @@ dataset = [[2.7810836,2.550537003,0],
 	[8.675418651,-0.242068655,1],
 	[7.673756466,3.508563011,1]]
 
-num_neighbors = 5
+steviloSosedov = 5
 steviloDelov = 5
 
 with open('bankovci.csv', newline='') as datoteka:
@@ -195,13 +165,13 @@ with open('bankovci.csv', newline='') as datoteka:
         sprememba = [float(vrstica[0]), float(vrstica[1]), float(vrstica[2]), float(vrstica[3]), int(vrstica[4])]
         podatki.append(sprememba)
 
-rezultati = algoritem(podatki, knn, steviloDelov, num_neighbors)
+algoritem(podatki, knn, steviloDelov, steviloSosedov)
 
 print('\n')
-print("Povrečna vrednost: ")
-print('Povrečna vrednost točnost: %.3f%%' % (sum(tocnost)/float(len(tocnost))))
-print('Povrečna vrednost priklic: %.3f%%' % (sum(priklic)/float(len(priklic))))
-print('Povrečna vrednost preciznost: %.3f%%' %(sum(preciznost)/float(len(preciznost))))
-print('Povrečna vrednost fmera: %.3f%%' % (sum(Fmera)/float(len(Fmera))))
-print('Povrečna vrednost senzitivnost: %.3f%%' %(sum(senzitivnost)/float(len(senzitivnost))))
-print('Povrečna vrednost specifičnost: %.3f%%' % (sum(specificnost)/float(len(specificnost))))
+print("~> REZULTATI <~")
+print('Povrecna vrednost priklic -> ' + str(np.average(np.array(priklic))))
+print('Povrecna vrednost priklic -> ' + str(np.average(np.array(priklic))))
+print('Povrecna vrednost preciznost -> ' + str(np.average(np.array(preciznost))))
+print('Povrecna vrednost fmera -> ' + str(np.average(np.array(Fmera))))
+print('Povrecna vrednost senzitivnost -> ' + str(np.average(np.array(senzitivnost))))
+print('Povrecna vrednost specificnost -> ' + str(np.average(np.array(specificnost))))
